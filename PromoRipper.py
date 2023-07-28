@@ -1,8 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-# import openai
-# openai.api_key = "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"
 
 def RipPromosHTM(input_string):
     #Beginning of Promo Rip
