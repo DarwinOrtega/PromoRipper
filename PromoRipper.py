@@ -9,7 +9,13 @@ def RipPromosHTM(input_string):
     soup = BeautifulSoup(page.text,'html.parser')
     #Get just the Promos
     promos = soup.find_all('p', attrs={'align' : 'left'},class_="style155")
-    return promos
+    #Print Promo and Handle Bad Characters
+    try:
+        for promo in promos:
+            print(promo.encode('utf-8', errors='ignore').decode('utf-8'))
+    except UnicodeEncodeError as e:
+        problematic_string = promo.get_text()
+        print(f"UnicodeEncodeError occurred. Problematic string: {problematic_string.encode('utf-8', errors='ignore').decode('utf-8')}")
 
 def find_href_links(base_Url):
     url = base_Url
@@ -38,7 +44,10 @@ def find_href_links(base_Url):
         # Move the start_index to continue searching
         start_index = end_index + 1
 
-    return href_links
+    try:
+        return href_links
+    except UnicodeEncodeError as e:
+        return href_links.encode('utf-8', errors='ignore').decode('utf-8')
 
 
 def getPageLinks(base_url):
@@ -70,12 +79,19 @@ def findShowLink(input_list):
                 return None
     return None
 
+def findShows(base_url):
+    result_list = []
+    for link in find_href_links(base_url):
+        if "showthread" in link and "Card" not in link and "post" not in link:
+            result_list.append(link)
+    return result_list
+
 def ripPromosFromShow(base_url):
     indexLink = findShowLink(find_href_links(base_url))
     print(RipPromosHTM(indexLink))
     for link in getPageLinks(indexLink):
-        print(RipPromosHTM(link))
+        RipPromosHTM(link)
 
-ripPromosFromShow(input('Type in The URL Of The Show: '))
-
-
+for link in findShows(input("Input The Name of The Forum Page")):
+    print("http://www.ocwfed.com/forum/"+link)
+    ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
