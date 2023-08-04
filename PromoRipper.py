@@ -111,10 +111,9 @@ def scrapePromos(base_url):
     while(isRunning):
         currentPage = nextPage(base_url)
         if(check_webpage_exists(currentPage)):
-            print(currentPage)
-            #for link in findShows(nextPage(base_url)):
-                #print("http://www.ocwfed.com/forum/"+link)
-                #ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
+            for link in findShows(nextPage(base_url)):
+                print("http://www.ocwfed.com/forum/"+link)
+                ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
         else:
             isRunning = False
 
