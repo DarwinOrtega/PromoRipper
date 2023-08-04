@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+import sqlite3
 
 def RipPromosHTM(input_string):
     #Beginning of Promo Rip
@@ -92,6 +93,32 @@ def ripPromosFromShow(base_url):
     for link in getPageLinks(indexLink):
         RipPromosHTM(link)
 
-for link in findShows(input("Input The Name of The Forum Page")):
-    print("http://www.ocwfed.com/forum/"+link)
-    ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
+def nextPage(base_url, x=[1]):
+    result = f"{base_url}/page{x[0]}&order=desc"
+    x[0] += 1  # Increment the value of x for the next call
+    return result
+
+def check_webpage_exists(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception if the response status code is not 2xx
+        return True
+    except requests.exceptions.RequestException as e:
+        return False
+    
+def scrapePromos(base_url):
+    isRunning = True
+    while(isRunning):
+        currentPage = nextPage(base_url)
+        if(check_webpage_exists(currentPage)):
+            print(currentPage)
+            #for link in findShows(nextPage(base_url)):
+                #print("http://www.ocwfed.com/forum/"+link)
+                #ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
+        else:
+            isRunning = False
+
+scrapePromos(input("Type in Your Base HTM Link: "))
+
+
+
