@@ -13,7 +13,9 @@ def RipPromosHTM(input_string):
     #Print Promo and Handle Bad Characters
     try:
         for promo in promos:
-            print(promo.encode('utf-8', errors='ignore').decode('utf-8'))
+            rawPromo = promo.encode('utf-8', errors='ignore').decode('utf-8')
+            formattedPromo = re.sub(r'<.*?>', '', rawPromo)
+            insertPromo(rawPromo, input_string, formattedPromo)
     except UnicodeEncodeError as e:
         problematic_string = promo.get_text()
         print(f"UnicodeEncodeError occurred. Problematic string: {problematic_string.encode('utf-8', errors='ignore').decode('utf-8')}")
@@ -93,9 +95,9 @@ def ripPromosFromShow(base_url):
     for link in getPageLinks(indexLink):
         RipPromosHTM(link)
 
-def nextPage(base_url, x=[1]):
+def nextPage(base_url, x=[230]):
     result = f"{base_url}/page{x[0]}&order=desc"
-    x[0] += 1  # Increment the value of x for the next call
+    x[0] -= 1  # Increment the value of x for the next call
     return result
 
 def check_webpage_exists(url):
@@ -111,13 +113,27 @@ def scrapePromos(base_url):
     while(isRunning):
         currentPage = nextPage(base_url)
         if(check_webpage_exists(currentPage)):
-            for link in findShows(nextPage(base_url)):
-                print("http://www.ocwfed.com/forum/"+link)
+            print(currentPage)
+            for link in findShows(currentPage):
                 ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
         else:
             isRunning = False
 
-scrapePromos(input("Type in Your Base HTM Link: "))
+def insertPromo(promo, show, unformattedPromo):
+    # Connect to the SQLite database (create a new one if it doesn't exist)
+    conn = sqlite3.connect('Promos.db')
+    cursor = conn.cursor()
+    
+    # Define the SQL query to insert data
+    insert_query = "INSERT INTO Promos (RawPromo, ShowLink, FormattedPromo) VALUES (?, ?, ?)"
+    
+    # Execute the query with the provided variables
+    cursor.execute(insert_query, (promo, show, unformattedPromo))
+    
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
 
+scrapePromos(input("Type in Your Base HTM Link: "))        
 
 
