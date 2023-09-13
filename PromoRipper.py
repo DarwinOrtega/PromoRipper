@@ -9,7 +9,7 @@ def RipPromosHTM(input_string):
     page = requests.get(url)
     soup = BeautifulSoup(page.text,'html.parser')
     #Get just the Promos
-    promos = soup.find_all('p', attrs={'align' : 'left'},class_="style155")
+    promos = soup.find_all('p', attrs={'align' : 'left'})
     #Print Promo and Handle Bad Characters
     try:
         for promo in promos:
@@ -91,13 +91,15 @@ def findShows(base_url):
 
 def ripPromosFromShow(base_url):
     indexLink = findShowLink(find_href_links(base_url))
-    print(RipPromosHTM(indexLink))
-    for link in getPageLinks(indexLink):
-        RipPromosHTM(link)
+    if indexLink is not None:
+        print(RipPromosHTM(indexLink))
+        for link in getPageLinks(indexLink):
+            RipPromosHTM(link)
+    else:
+        print(f"No show link found for: {base_url}")
 
-def nextPage(base_url, x=[230]):
-    result = f"{base_url}/page{x[0]}&order=desc"
-    x[0] -= 1  # Increment the value of x for the next call
+def nextPage(base_url, page_number):
+    result = f"{base_url}/page{page_number}&order=desc"
     return result
 
 def check_webpage_exists(url):
@@ -110,22 +112,43 @@ def check_webpage_exists(url):
     
 def scrapePromos(base_url):
     isRunning = True
-    while(isRunning):
-        currentPage = nextPage(base_url)
-        if(check_webpage_exists(currentPage)):
+    page_number =  15 # Initialize the page number
+    while isRunning:
+        currentPage = nextPage(base_url, page_number)  # Pass the page number to nextPage
+        if check_webpage_exists(currentPage):
             print(currentPage)
             for link in findShows(currentPage):
+                print("http://www.ocwfed.com/forum/" + link)
                 ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
+            page_number += 1  # Increment the page number for the next iteration
         else:
             isRunning = False
 
+def create_table():
+    conn = sqlite3.connect('Promos.db')
+    cursor = conn.cursor()
+    
+    create_table_query = '''
+        CREATE TABLE IF NOT EXISTS Promos (
+            ID INTEGER PRIMARY KEY,
+            RawPromo TEXT,
+            ShowLink TEXT,
+            FormattedPromo TEXT
+        )
+    '''
+    
+    cursor.execute(create_table_query)
+    
+    conn.commit()
+    conn.close()
+
 def insertPromo(promo, show, unformattedPromo):
-    # Connect to the SQLite database (create a new one if it doesn't exist)
+    # Connect to the SQLite database (create a new one if it doesn't exist  )
     conn = sqlite3.connect('Promos.db')
     cursor = conn.cursor()
     
     # Define the SQL query to insert data
-    insert_query = "INSERT INTO Promos (RawPromo, ShowLink, FormattedPromo) VALUES (?, ?, ?)"
+    insert_query = "INSERT OR REPLACE INTO Promos (RawPromo, ShowLink, FormattedPromo) VALUES (?, ?, ?)"
     
     # Execute the query with the provided variables
     cursor.execute(insert_query, (promo, show, unformattedPromo))
@@ -133,7 +156,6 @@ def insertPromo(promo, show, unformattedPromo):
     # Commit the changes and close the connection
     conn.commit()
     conn.close()
-
-scrapePromos(input("Type in Your Base HTM Link: "))        
-
-
+    
+create_table()
+scrapePromos(input("Type in the Home Link: ")        
