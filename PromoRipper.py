@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import sqlite3
+promo_count = 0
 
 def RipPromosHTM(input_string):
     #Beginning of Promo Rip
@@ -10,12 +11,13 @@ def RipPromosHTM(input_string):
     soup = BeautifulSoup(page.text,'html.parser')
     #Get just the Promos
     promos = soup.find_all('p', attrs={'align' : 'left'})
-    #Print Promo and Handle Bad Characters
     try:
         for promo in promos:
             rawPromo = promo.encode('utf-8', errors='ignore').decode('utf-8')
             formattedPromo = re.sub(r'<.*?>', '', rawPromo)
             insertPromo(rawPromo, input_string, formattedPromo)
+            global promo_count
+            promo_count += 1
     except UnicodeEncodeError as e:
         problematic_string = promo.get_text()
         print(f"UnicodeEncodeError occurred. Problematic string: {problematic_string.encode('utf-8', errors='ignore').decode('utf-8')}")
@@ -48,6 +50,7 @@ def find_href_links(base_Url):
         start_index = end_index + 1
 
     try:
+        href_links = list(dict.fromkeys(href_links))
         return href_links
     except UnicodeEncodeError as e:
         return href_links.encode('utf-8', errors='ignore').decode('utf-8')
@@ -71,6 +74,8 @@ def findShowLink(input_list):
     for string in input_list:
         if 'recapshow' in string:
             return string
+        elif 'recappv' in string:
+            return string
         elif 'bit.ly' in string:
             try:
                 with requests.Session() as session:
@@ -85,18 +90,21 @@ def findShowLink(input_list):
 def findShows(base_url):
     result_list = []
     for link in find_href_links(base_url):
-        if "showthread" in link and "Card" not in link and "post" not in link:
+        if "showthread" in link and "Card" not in link and "post" not in link and "page" not in link:
             result_list.append(link)
     return result_list
 
 def ripPromosFromShow(base_url):
+    global promo_count
+    promo_count = 0
     indexLink = findShowLink(find_href_links(base_url))
     if indexLink is not None:
-        print(RipPromosHTM(indexLink))
         for link in getPageLinks(indexLink):
             RipPromosHTM(link)
-    else:
-        print(f"No show link found for: {base_url}")
+    #else:
+         #   print(f"No show link found for: {base_url}")
+    if promo_count > 0:
+        print(base_url + "||"   +str(promo_count))
 
 def nextPage(base_url, page_number):
     result = f"{base_url}/page{page_number}&order=desc"
@@ -112,13 +120,12 @@ def check_webpage_exists(url):
     
 def scrapePromos(base_url):
     isRunning = True
-    page_number =  15 # Initialize the page number
+    page_number =  87 # Initialize the page number
     while isRunning:
         currentPage = nextPage(base_url, page_number)  # Pass the page number to nextPage
         if check_webpage_exists(currentPage):
             print(currentPage)
             for link in findShows(currentPage):
-                print("http://www.ocwfed.com/forum/" + link)
                 ripPromosFromShow("http://www.ocwfed.com/forum/" + link)
             page_number += 1  # Increment the page number for the next iteration
         else:
